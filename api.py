@@ -11,6 +11,7 @@ from fastapi import HTTPException, FastAPI, Header
 from uuid import UUID, uuid4
 
 from fastapi_sessions.backends.implementations import InMemoryBackend
+from spotipy import SpotifyClientCredentials
 from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_401_UNAUTHORIZED
 
@@ -54,6 +55,13 @@ async def find_events(names: List[str]) -> List[Event]:
         events.extend(result)
 
     return events
+
+
+@app.get("/artists")
+async def find_artist(q: str) -> List[str]:
+    sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials())
+
+    return [item["name"] for item in sp.search(q=f"artist:{q}", type="artist")["artists"]["items"]]
 
 
 @app.get("/user/top_artists")

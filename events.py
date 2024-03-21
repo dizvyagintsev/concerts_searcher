@@ -3,12 +3,16 @@ import os
 from dataclasses import dataclass
 import datetime
 from typing import List
+
+import dotenv
 from asyncio_redis_rate_limit import rate_limit, RateSpec, RateLimitError
 from redis.asyncio import Redis as AsyncRedis
 import backoff
 import asyncio
 
 import httpx
+
+dotenv.load_dotenv(".env")
 
 MAX_PER_PAGE = 200
 
@@ -67,7 +71,7 @@ async def get_events_by_name(name: str) -> List[Event]:
                     name=event["name"],
                     url=event["url"],
                     city=event["_embedded"]["venues"][0]["city"]["name"],
-                    country=event["_embedded"]["venues"][0]["city"]["name"],
+                    country=event["_embedded"]["venues"][0]["country"]["name"],
                     distance_km=event["distance"],
                     date=datetime.datetime.strptime(event["dates"]["start"]["localDate"], "%Y-%m-%d").date()
                 ))
