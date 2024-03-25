@@ -1,18 +1,15 @@
 import math
 import os
-from dataclasses import dataclass
 import datetime
 from typing import List
 
-import dotenv
-from asyncio_redis_rate_limit import rate_limit, RateSpec, RateLimitError
-from redis.asyncio import Redis as AsyncRedis
+from asyncio_redis_rate_limit import RateLimitError
 import backoff
 import asyncio
 
 import httpx
 
-dotenv.load_dotenv(".env")
+from entities import Event
 
 MAX_PER_PAGE = 200
 
@@ -26,20 +23,6 @@ SEARCH_RADIUS = 700
 
 TICKETMASTER_API_KEY = os.environ["TICKETMASTER_API_KEY"]
 AMSTERDAM_LATLONG = '52.3676,4.9041'
-
-redis = AsyncRedis.from_url('redis://localhost:6379')
-
-
-@dataclass
-class Event:
-    name: str
-    artist: str
-    url: str
-    city: str
-    country: str
-    date: datetime.date
-    distance_km: float
-    id: str
 
 
 async def get_events_by_name(name: str) -> List[Event]:
@@ -72,7 +55,8 @@ async def get_events_by_name(name: str) -> List[Event]:
                     url=event["url"],
                     city=event["_embedded"]["venues"][0]["city"]["name"],
                     country=event["_embedded"]["venues"][0]["country"]["name"],
-                    distance_km=event["distance"],
+                    country_code=event["_embedded"]["venues"][0]["country"]["countryCode"],
+                    # distance_km=event["distance"],
                     date=datetime.datetime.strptime(event["dates"]["start"]["localDate"], "%Y-%m-%d").date()
                 ))
             except KeyError as e:
@@ -83,16 +67,15 @@ async def get_events_by_name(name: str) -> List[Event]:
     return events
 
 
-@backoff.on_exception(backoff.constant, RateLimitError, interval=1)
-@rate_limit(rate_spec=RateSpec(requests=5, seconds=1), backend=redis)
+@backoff.on_exception(backoff.constant, (RateLimitError, httpx.HTTPError), interval=1)
 async def get_page(page: int, name: str):
     url = "https://app.ticketmaster.com/discovery/v2/events.json"
     params = {
         'apikey': TICKETMASTER_API_KEY,
         'size': MAX_PER_PAGE,
-        'latlong': AMSTERDAM_LATLONG,
-        'radius': SEARCH_RADIUS,
-        'unit': 'km',
+        # 'latlong': AMSTERDAM_LATLONG,
+        # 'radius': SEARCH_RADIUS,
+        # 'unit': 'km',
         'page': page,
         'keyword': name,
     }

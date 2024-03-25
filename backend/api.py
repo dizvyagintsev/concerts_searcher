@@ -2,7 +2,6 @@ import asyncio
 import os
 from typing import Annotated, List
 
-import dotenv
 import spotipy
 from fastapi.security import OAuth2AuthorizationCodeBearer
 import httpx
@@ -15,7 +14,8 @@ from spotipy import SpotifyClientCredentials
 from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from events import Event, get_events_by_name
+from events import get_events_by_name
+from entities import Event
 
 
 class SessionData(BaseModel):
@@ -23,8 +23,6 @@ class SessionData(BaseModel):
     refresh_token: str
     expires_in: int
 
-
-dotenv.load_dotenv(".env")
 
 backend = InMemoryBackend[UUID, SessionData]()
 
@@ -35,6 +33,7 @@ app = FastAPI()
 CLIENT_ID = os.environ["SPOTIPY_CLIENT_ID"]
 CLIENT_SECRET = os.environ["SPOTIPY_CLIENT_SECRET"]
 REDIRECT_URI = os.environ["SPOTIPY_REDIRECT_URI"]
+FRONTEND_URI = os.environ["FRONTEND_URI"]
 SCOPE = "user-top-read"
 AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -135,7 +134,7 @@ async def callback(code: str, resp: Response):
         await backend.create(session, session_data)
 
         return RedirectResponse(
-            url=f"https://8eac-80-113-51-139.ngrok-free.app/?session={session}",
+            url=f"{FRONTEND_URI}/?session={session}",
         )
 
 if __name__ == "__main__":
